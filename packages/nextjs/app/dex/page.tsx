@@ -10,7 +10,6 @@ import { Address as AddressType, formatEther, isAddress, parseEther } from "viem
 import { useAccount } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
-// REGEX for number inputs (only allow numbers and a single decimal point)
 const NUMBER_REGEX = /^\.?\d+\.?\d*$/;
 
 const Dex: NextPage = () => {
@@ -39,44 +38,30 @@ const Dex: NextPage = () => {
   });
 
   useEffect(() => {
-    if (DEXBalloonBalance !== undefined) {
-      setIsLoading(false);
-    }
+    if (DEXBalloonBalance !== undefined) setIsLoading(false);
   }, [DEXBalloonBalance]);
 
   useEffect(() => {
     const el = curveWrapRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-
     const ro = new ResizeObserver(entries => {
-      const entry = entries[0];
-      const width = entry?.contentRect?.width ?? 0;
+      const width = entries[0]?.contentRect?.width ?? 0;
       if (!Number.isFinite(width) || width <= 0) return;
-      // Keep the chart from causing horizontal overflow and scrollbars.
-      const next = Math.max(260, Math.min(500, Math.floor(width)));
-      setCurveSize(next);
+      setCurveSize(Math.max(260, Math.min(500, Math.floor(width))));
     });
-
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  const { data: DEXtotalLiquidity } = useScaffoldReadContract({
-    contractName: "DEX",
-    functionName: "totalLiquidity",
-  });
-
+  const { data: DEXtotalLiquidity } = useScaffoldReadContract({ contractName: "DEX", functionName: "totalLiquidity" });
   const { writeContractAsync: writeDexContractAsync } = useScaffoldWriteContract({ contractName: "DEX" });
-
   const { writeContractAsync: writeBalloonsContractAsync } = useScaffoldWriteContract({ contractName: "Balloons" });
 
   const { data: balanceOfWrite } = useScaffoldReadContract({
     contractName: "Balloons",
     functionName: "balanceOf",
     args: [accountBalanceOf as AddressType],
-    query: {
-      enabled: isAddress(accountBalanceOf),
-    },
+    query: { enabled: isAddress(accountBalanceOf) },
   });
 
   const { data: contractBalance } = useScaffoldReadContract({
@@ -100,250 +85,262 @@ const Dex: NextPage = () => {
   const { data: contractETHBalance } = useWatchBalance({ address: DEXInfo?.address });
 
   return (
-    <>
-      <h1 className="text-center mb-4 mt-5">
-        <span className="block text-xl text-right mr-7">
-          🎈: {parseFloat(formatEther(userBalloons || 0n)).toFixed(4)}
-        </span>
-        <span className="block text-xl text-right mr-7">
-          💦💦: {parseFloat(formatEther(userLiquidity || 0n)).toFixed(4)}
-        </span>
-        <span className="block text-2xl mb-2">Speedrun Ethereum</span>
-        <span className="block text-4xl font-bold">Challenge: ⚖️ Build a DEX </span>
-      </h1>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pt-10 content-start">
-        <div className="px-5 py-5 space-y-6 min-w-0">
-          <div className="bg-base-100 shadow-lg shadow-secondary border-8 border-secondary rounded-xl p-8">
-            <div className="flex flex-col text-center">
-              <span className="text-3xl font-semibold mb-2">DEX Contract</span>
-              <span className="block text-2xl mb-2 mx-auto">
-                <Address size="xl" address={DEXInfo?.address} />
-              </span>
-              <span className="flex flex-row mx-auto mt-5">
-                {" "}
-                <Balance
-                  style={{ fontSize: "var(--text-xl)", lineHeight: "var(--text-xl-line-height)" }}
-                  address={DEXInfo?.address}
-                />{" "}
-                ⚖️
-                {isLoading ? (
-                  <span>Loading...</span>
-                ) : (
-                  <span className="pl-8 text-xl">🎈 {parseFloat(formatEther(DEXBalloonBalance || 0n)).toFixed(4)}</span>
-                )}
-              </span>
+    <div className="min-h-screen" style={{ background: "#060d14" }}>
+      {/* Header */}
+      <div className="text-center pt-10 pb-6 px-4">
+        <p className="cyber-label mb-1">Speedrun Ethereum</p>
+        <h1 className="text-4xl font-bold tracking-tight" style={{ color: "#e0f7ff" }}>
+          ⚖️ DEX Exchange
+        </h1>
+        <p className="mt-2 text-sm" style={{ color: "#5eafc6" }}>
+          Constant-product AMM · 0.3% swap fee
+        </p>
+
+        {/* Stats bar */}
+        <div className="flex justify-center gap-8 mt-6 flex-wrap">
+          <div className="text-center">
+            <p className="cyber-label">Your $BAL</p>
+            <p className="cyber-value text-lg">🎈 {parseFloat(formatEther(userBalloons || 0n)).toFixed(4)}</p>
+          </div>
+          <div className="text-center">
+            <p className="cyber-label">Your Liquidity</p>
+            <p className="cyber-value text-lg">💧 {parseFloat(formatEther(userLiquidity || 0n)).toFixed(4)}</p>
+          </div>
+          <div className="text-center">
+            <p className="cyber-label">Pool Liquidity</p>
+            <p className="cyber-value text-lg">
+              {DEXtotalLiquidity ? parseFloat(formatEther(DEXtotalLiquidity)).toFixed(4) : "—"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 pb-16 max-w-6xl mx-auto">
+        {/* Left column */}
+        <div className="space-y-5">
+
+          {/* DEX Contract card */}
+          <div className="cyber-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#00e5ff]"></span>
+              <span className="cyber-label">DEX Contract</span>
             </div>
-            <div className="py-3 px-4">
-              <div className="flex mb-4 justify-center items-center">
-                <span className="w-1/2">
-                  ethToToken{" "}
+            <div className="flex items-center justify-between mb-5">
+              <Address size="sm" address={DEXInfo?.address} />
+              <div className="flex items-center gap-3 text-sm" style={{ color: "#cce8f4" }}>
+                <Balance style={{ fontSize: "0.9rem" }} address={DEXInfo?.address} />
+                <span style={{ color: "#5eafc6" }}>·</span>
+                {isLoading ? (
+                  <span className="loading loading-dots loading-xs"></span>
+                ) : (
+                  <span>🎈 {parseFloat(formatEther(DEXBalloonBalance || 0n)).toFixed(4)}</span>
+                )}
+              </div>
+            </div>
+
+            <hr className="cyber-divider mb-5" />
+
+            {/* Swap section */}
+            <p className="cyber-label mb-3">Swap</p>
+            <div className="space-y-3">
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>ETH → $BAL</p>
                   <EtherInput
                     key={ethToTokenInputKey}
                     defaultValue={ethToTokenAmount}
-                    onValueChange={({ valueInEth }) => {
-                      setTokenToETHAmount("");
-                      setEthToTokenAmount(valueInEth);
-                    }}
+                    onValueChange={({ valueInEth }) => { setTokenToETHAmount(""); setEthToTokenAmount(valueInEth); }}
                     name="ethToToken"
                   />
-                </span>
+                </div>
                 <button
-                  className="btn btn-primary h-[2.2rem] min-h-[2.2rem] mt-6 mx-5"
+                  className="btn btn-primary btn-sm px-5"
                   onClick={async () => {
                     try {
                       await writeDexContractAsync({
                         functionName: "ethToToken",
                         value: NUMBER_REGEX.test(ethToTokenAmount) ? parseEther(ethToTokenAmount) : 0n,
                       });
-                      setEthToTokenAmount("");
-                      setTokenToETHAmount("");
-                      setEthToTokenInputKey(k => k + 1);
-                    } catch (err) {
-                      console.error("Error calling ethToToken function", err);
-                    }
+                      setEthToTokenAmount(""); setTokenToETHAmount(""); setEthToTokenInputKey(k => k + 1);
+                    } catch (err) { console.error(err); }
                   }}
                 >
-                  Send
+                  Swap
                 </button>
               </div>
-              <div className="flex justify-center items-center">
-                <span className="w-1/2">
-                  tokenToETH{" "}
+
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>$BAL → ETH</p>
                   <IntegerInput
                     value={tokenToETHAmount}
-                    onChange={value => {
-                      setEthToTokenAmount("");
-                      setTokenToETHAmount(value.toString());
-                    }}
+                    onChange={value => { setEthToTokenAmount(""); setTokenToETHAmount(value.toString()); }}
                     name="tokenToETH"
                     disableMultiplyBy1e18
                   />
-                </span>
+                </div>
                 <button
-                  className="btn btn-primary h-[2.2rem] min-h-[2.2rem] mt-6 mx-5"
+                  className="btn btn-primary btn-sm px-5"
                   onClick={async () => {
                     try {
                       await writeDexContractAsync({
                         functionName: "tokenToEth",
-                        // @ts-expect-error - Show error on frontend while sending, if user types invalid number
-                        args: [NUMBER_REGEX.test(tokenToETHAmount) ? parseEther(tokenToETHAmount) : tokenToETHAmount],
+                        args: [NUMBER_REGEX.test(tokenToETHAmount) ? parseEther(tokenToETHAmount) : BigInt(tokenToETHAmount || "0")],
                       });
-                      setEthToTokenAmount("");
-                      setTokenToETHAmount("");
-                      setEthToTokenInputKey(k => k + 1);
-                    } catch (err) {
-                      console.error("Error calling tokenToEth function", err);
-                    }
+                      setEthToTokenAmount(""); setTokenToETHAmount(""); setEthToTokenInputKey(k => k + 1);
+                    } catch (err) { console.error(err); }
                   }}
                 >
-                  Send
+                  Swap
                 </button>
               </div>
             </div>
-            <p className="text-center text-primary-content text-xl mt-8 -ml-8">
-              Liquidity ({DEXtotalLiquidity ? parseFloat(formatEther(DEXtotalLiquidity || 0n)).toFixed(4) : "None"})
-            </p>
-            <div className="px-4 py-3">
-              <div className="flex mb-4 justify-center items-center">
-                <span className="w-1/2">
-                  Deposit{" "}
+
+            <hr className="cyber-divider my-5" />
+
+            {/* Liquidity section */}
+            <p className="cyber-label mb-3">Liquidity</p>
+            <div className="space-y-3">
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>Deposit ETH</p>
                   <EtherInput
                     key={depositInputKey}
                     defaultValue={depositAmount}
                     onValueChange={({ valueInEth }) => setDepositAmount(valueInEth)}
                   />
-                </span>
+                </div>
                 <button
-                  className="btn btn-primary h-[2.2rem] min-h-[2.2rem] mt-6 mx-5"
+                  className="btn btn-primary btn-sm px-5"
                   onClick={async () => {
                     try {
                       await writeDexContractAsync({
                         functionName: "deposit",
                         value: NUMBER_REGEX.test(depositAmount) ? parseEther(depositAmount) : 0n,
                       });
-                      setDepositAmount("");
-                      setDepositInputKey(k => k + 1);
-                    } catch (err) {
-                      console.error("Error calling deposit function", err);
-                    }
+                      setDepositAmount(""); setDepositInputKey(k => k + 1);
+                    } catch (err) { console.error(err); }
                   }}
                 >
-                  Send
+                  Add
                 </button>
               </div>
 
-              <div className="flex justify-center items-center">
-                <span className="w-1/2">
-                  Withdraw{" "}
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>Withdraw LP</p>
                   <EtherInput
                     key={withdrawInputKey}
                     defaultValue={withdrawAmount}
                     onValueChange={({ valueInEth }) => setWithdrawAmount(valueInEth)}
                   />
-                </span>
+                </div>
                 <button
-                  className="btn btn-primary h-[2.2rem] min-h-[2.2rem] mt-6 mx-5"
+                  className="btn btn-primary btn-sm px-5"
                   onClick={async () => {
                     try {
                       await writeDexContractAsync({
                         functionName: "withdraw",
-                        // @ts-expect-error - Show error on frontend while sending, if user types invalid number
+                        // @ts-expect-error - user may type invalid number
                         args: [NUMBER_REGEX.test(withdrawAmount) ? parseEther(withdrawAmount) : withdrawAmount],
                       });
-                      setWithdrawAmount("");
-                      setWithdrawInputKey(k => k + 1);
-                    } catch (err) {
-                      console.error("Error calling withdraw function", err);
-                    }
+                      setWithdrawAmount(""); setWithdrawInputKey(k => k + 1);
+                    } catch (err) { console.error(err); }
                   }}
                 >
-                  Send
+                  Remove
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4 bg-base-100 shadow-lg shadow-secondary border-8 border-secondary rounded-xl py-5 p-8">
-            <div className="flex flex-col text-center mt-2 mb-4 px-4">
-              <span className="block text-3xl font-semibold mb-2">Balloons</span>
-              <span className="mx-auto">
-                <Address size="xl" address={BalloonsInfo?.address} />
-              </span>
+          {/* Balloons card */}
+          <div className="cyber-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#00e5ff]"></span>
+              <span className="cyber-label">Balloons ($BAL)</span>
+            </div>
+            <div className="mb-4">
+              <Address size="sm" address={BalloonsInfo?.address} />
             </div>
 
-            <div className=" px-4 py-3">
-              <div className="flex flex-col gap-4 mb-4 justify-center items-center">
-                <span className="w-1/2">
-                  Approve{" "}
-                  <AddressInput
-                    value={approveSpender ?? ""}
-                    onChange={value => setApproveSpender(value)}
-                    placeholder="Address Spender"
-                  />
-                </span>
-                <span className="w-1/2">
+            <hr className="cyber-divider mb-4" />
+
+            <p className="cyber-label mb-3">Approve Spender</p>
+            <div className="space-y-3">
+              <AddressInput
+                value={approveSpender ?? ""}
+                onChange={value => setApproveSpender(value)}
+                placeholder="Spender address"
+              />
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
                   <IntegerInput
                     value={approveAmount}
                     onChange={value => setApproveAmount(value.toString())}
                     placeholder="Amount"
                     disableMultiplyBy1e18
                   />
-                </span>
+                </div>
                 <button
-                  className="btn btn-primary h-[2.2rem] min-h-[2.2rem] mt-auto"
+                  className="btn btn-primary btn-sm px-5"
                   onClick={async () => {
                     try {
                       await writeBalloonsContractAsync({
                         functionName: "approve",
                         args: [
                           approveSpender as AddressType,
-                          // @ts-expect-error - Show error on frontend while sending, if user types invalid number
+                          // @ts-expect-error - user may type invalid number
                           NUMBER_REGEX.test(approveAmount) ? parseEther(approveAmount) : approveAmount,
                         ],
                       });
-                      setApproveSpender("");
-                      setApproveAmount("");
-                    } catch (err) {
-                      console.error("Error calling approve function", err);
-                    }
+                      setApproveSpender(""); setApproveAmount("");
+                    } catch (err) { console.error(err); }
                   }}
                 >
-                  Send
+                  Approve
                 </button>
-                <span className="w-1/2">
-                  balanceOf{" "}
-                  <AddressInput
-                    value={accountBalanceOf}
-                    onChange={value => setAccountBalanceOf(value)}
-                    placeholder="address Account"
-                  />
-                </span>
-                {balanceOfWrite === undefined ? (
-                  <h1></h1>
-                ) : (
-                  <span className="font-bold bg-primary px-3 rounded-2xl">
-                    BAL Balance: {parseFloat(formatEther(balanceOfWrite || 0n)).toFixed(4)}
-                  </span>
-                )}
               </div>
             </div>
+
+            <hr className="cyber-divider my-4" />
+
+            <p className="cyber-label mb-3">Check Balance</p>
+            <AddressInput
+              value={accountBalanceOf}
+              onChange={value => setAccountBalanceOf(value)}
+              placeholder="Address to check"
+            />
+            {balanceOfWrite !== undefined && (
+              <div className="mt-3 px-4 py-2 rounded" style={{ background: "rgba(0,229,255,0.08)", border: "1px solid rgba(0,229,255,0.2)" }}>
+                <span className="cyber-label">$BAL Balance: </span>
+                <span className="cyber-value">{parseFloat(formatEther(balanceOfWrite || 0n)).toFixed(4)}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex justify-center px-2 pb-10 lg:pt-5 lg:px-4 lg:sticky lg:top-24 min-w-0">
-          <div ref={curveWrapRef} className="flex justify-center w-full max-w-[520px] min-w-0">
-            <Curve
-              addingEth={ethToTokenAmount !== "" ? parseFloat(ethToTokenAmount.toString()) : 0}
-              addingToken={tokenToETHAmount !== "" ? parseFloat(tokenToETHAmount.toString()) : 0}
-              ethReserve={parseFloat(formatEther(contractETHBalance?.value || 0n))}
-              tokenReserve={parseFloat(formatEther(contractBalance || 0n))}
-              width={curveSize}
-              height={curveSize}
-            />
+        {/* Right column — curve */}
+        <div className="lg:sticky lg:top-24 flex justify-center items-start pt-2">
+          <div className="cyber-card p-4 w-full">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#00e5ff]"></span>
+              <span className="cyber-label">Price Curve (x · y = k)</span>
+            </div>
+            <div ref={curveWrapRef} className="flex justify-center w-full min-w-0">
+              <Curve
+                addingEth={ethToTokenAmount !== "" ? parseFloat(ethToTokenAmount.toString()) : 0}
+                addingToken={tokenToETHAmount !== "" ? parseFloat(tokenToETHAmount.toString()) : 0}
+                ethReserve={parseFloat(formatEther(contractETHBalance?.value || 0n))}
+                tokenReserve={parseFloat(formatEther(contractBalance || 0n))}
+                width={curveSize}
+                height={curveSize}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

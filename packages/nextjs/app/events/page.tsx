@@ -197,8 +197,8 @@ const Events: NextPage = () => {
                             <Address address={event.args?.liquidityRemover} />
                           </td>
                           <td>{parseFloat(formatEther(event.args?.ethOutput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.tokensOutput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.liquidityWithdrawn || 0n)).toFixed(4)}</td>
+                          <td>{parseFloat(formatEther(event.args?.tokenOutput || 0n)).toFixed(4)}</td>
+                          <td>{parseFloat(formatEther(event.args?.liquidityAmount || 0n)).toFixed(4)}</td>
                         </tr>
                       );
                     })
