@@ -118,7 +118,6 @@ const Dex: NextPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 pb-16 max-w-6xl mx-auto">
         {/* Left column */}
         <div className="space-y-5">
-
           {/* DEX Contract card */}
           <div className="cyber-card p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -145,11 +144,16 @@ const Dex: NextPage = () => {
             <div className="space-y-3">
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>ETH → $BAL</p>
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>
+                    ETH → $BAL
+                  </p>
                   <EtherInput
                     key={ethToTokenInputKey}
                     defaultValue={ethToTokenAmount}
-                    onValueChange={({ valueInEth }) => { setTokenToETHAmount(""); setEthToTokenAmount(valueInEth); }}
+                    onValueChange={({ valueInEth }) => {
+                      setTokenToETHAmount("");
+                      setEthToTokenAmount(valueInEth);
+                    }}
                     name="ethToToken"
                   />
                 </div>
@@ -161,8 +165,12 @@ const Dex: NextPage = () => {
                         functionName: "ethToToken",
                         value: NUMBER_REGEX.test(ethToTokenAmount) ? parseEther(ethToTokenAmount) : 0n,
                       });
-                      setEthToTokenAmount(""); setTokenToETHAmount(""); setEthToTokenInputKey(k => k + 1);
-                    } catch (err) { console.error(err); }
+                      setEthToTokenAmount("");
+                      setTokenToETHAmount("");
+                      setEthToTokenInputKey(k => k + 1);
+                    } catch (err) {
+                      console.error(err);
+                    }
                   }}
                 >
                   Swap
@@ -171,10 +179,15 @@ const Dex: NextPage = () => {
 
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>$BAL → ETH</p>
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>
+                    $BAL → ETH
+                  </p>
                   <IntegerInput
                     value={tokenToETHAmount}
-                    onChange={value => { setEthToTokenAmount(""); setTokenToETHAmount(value.toString()); }}
+                    onChange={value => {
+                      setEthToTokenAmount("");
+                      setTokenToETHAmount(value.toString());
+                    }}
                     name="tokenToETH"
                     disableMultiplyBy1e18
                   />
@@ -185,10 +198,18 @@ const Dex: NextPage = () => {
                     try {
                       await writeDexContractAsync({
                         functionName: "tokenToEth",
-                        args: [NUMBER_REGEX.test(tokenToETHAmount) ? parseEther(tokenToETHAmount) : BigInt(tokenToETHAmount || "0")],
+                        args: [
+                          NUMBER_REGEX.test(tokenToETHAmount)
+                            ? parseEther(tokenToETHAmount)
+                            : BigInt(tokenToETHAmount || "0"),
+                        ],
                       });
-                      setEthToTokenAmount(""); setTokenToETHAmount(""); setEthToTokenInputKey(k => k + 1);
-                    } catch (err) { console.error(err); }
+                      setEthToTokenAmount("");
+                      setTokenToETHAmount("");
+                      setEthToTokenInputKey(k => k + 1);
+                    } catch (err) {
+                      console.error(err);
+                    }
                   }}
                 >
                   Swap
@@ -203,7 +224,9 @@ const Dex: NextPage = () => {
             <div className="space-y-3">
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>Deposit ETH</p>
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>
+                    Deposit ETH
+                  </p>
                   <EtherInput
                     key={depositInputKey}
                     defaultValue={depositAmount}
@@ -218,8 +241,11 @@ const Dex: NextPage = () => {
                         functionName: "deposit",
                         value: NUMBER_REGEX.test(depositAmount) ? parseEther(depositAmount) : 0n,
                       });
-                      setDepositAmount(""); setDepositInputKey(k => k + 1);
-                    } catch (err) { console.error(err); }
+                      setDepositAmount("");
+                      setDepositInputKey(k => k + 1);
+                    } catch (err) {
+                      console.error(err);
+                    }
                   }}
                 >
                   Add
@@ -228,7 +254,9 @@ const Dex: NextPage = () => {
 
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>Withdraw LP</p>
+                  <p className="text-xs mb-1" style={{ color: "#5eafc6" }}>
+                    Withdraw LP
+                  </p>
                   <EtherInput
                     key={withdrawInputKey}
                     defaultValue={withdrawAmount}
@@ -244,8 +272,11 @@ const Dex: NextPage = () => {
                         // @ts-expect-error - user may type invalid number
                         args: [NUMBER_REGEX.test(withdrawAmount) ? parseEther(withdrawAmount) : withdrawAmount],
                       });
-                      setWithdrawAmount(""); setWithdrawInputKey(k => k + 1);
-                    } catch (err) { console.error(err); }
+                      setWithdrawAmount("");
+                      setWithdrawInputKey(k => k + 1);
+                    } catch (err) {
+                      console.error(err);
+                    }
                   }}
                 >
                   Remove
@@ -294,8 +325,11 @@ const Dex: NextPage = () => {
                           NUMBER_REGEX.test(approveAmount) ? parseEther(approveAmount) : approveAmount,
                         ],
                       });
-                      setApproveSpender(""); setApproveAmount("");
-                    } catch (err) { console.error(err); }
+                      setApproveSpender("");
+                      setApproveAmount("");
+                    } catch (err) {
+                      console.error(err);
+                    }
                   }}
                 >
                   Approve
@@ -312,7 +346,10 @@ const Dex: NextPage = () => {
               placeholder="Address to check"
             />
             {balanceOfWrite !== undefined && (
-              <div className="mt-3 px-4 py-2 rounded" style={{ background: "rgba(0,229,255,0.08)", border: "1px solid rgba(0,229,255,0.2)" }}>
+              <div
+                className="mt-3 px-4 py-2 rounded"
+                style={{ background: "rgba(0,229,255,0.08)", border: "1px solid rgba(0,229,255,0.2)" }}
+              >
                 <span className="cyber-label">$BAL Balance: </span>
                 <span className="cyber-value">{parseFloat(formatEther(balanceOfWrite || 0n)).toFixed(4)}</span>
               </div>

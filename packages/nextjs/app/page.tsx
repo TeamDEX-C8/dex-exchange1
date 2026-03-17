@@ -19,7 +19,7 @@ const Home: NextPage = () => {
       <div className="relative overflow-hidden">
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-violet-900/20 via-transparent to-cyan-900/20" />
-        
+
         {/* Grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
 
@@ -39,8 +39,8 @@ const Home: NextPage = () => {
             </h1>
 
             <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto mb-12">
-              A decentralized exchange powered by the constant product formula. 
-              Swap ETH ↔ $BAL tokens with automatic price discovery.
+              A decentralized exchange powered by the constant product formula. Swap ETH ↔ $BAL tokens with automatic
+              price discovery.
             </p>
 
             {/* CTA Buttons */}
@@ -96,7 +96,8 @@ const Home: NextPage = () => {
             </div>
             <h3 className="text-xl font-semibold text-white mb-3">Swap Tokens</h3>
             <p className="text-gray-400">
-              Exchange ETH for $BAL tokens instantly. The price automatically adjusts based on pool reserves using the constant product formula.
+              Exchange ETH for $BAL tokens instantly. The price automatically adjusts based on pool reserves using the
+              constant product formula.
             </p>
           </div>
 
@@ -107,7 +108,8 @@ const Home: NextPage = () => {
             </div>
             <h3 className="text-xl font-semibold text-white mb-3">Provide Liquidity</h3>
             <p className="text-gray-400">
-              Add both ETH and tokens to the pool. Earn 0.3% on every trade. Your contribution enables decentralized trading for everyone.
+              Add both ETH and tokens to the pool. Earn 0.3% on every trade. Your contribution enables decentralized
+              trading for everyone.
             </p>
           </div>
 

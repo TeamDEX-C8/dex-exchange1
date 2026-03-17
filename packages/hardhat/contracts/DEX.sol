@@ -72,12 +72,12 @@ contract DEX is ReentrancyGuard {
 
         uint256 ethReserve = address(this).balance - msg.value;
         uint256 tokenReserve = token.balanceOf(address(this));
-        
+
         // Prevent division by zero
         if (ethReserve == 0 || tokenReserve == 0) revert ZeroReserve();
-        
+
         tokenOutput = price(msg.value, ethReserve, tokenReserve);
-        
+
         // Slippage protection
         if (tokenOutput < minTokens) revert InsufficientOutputAmount();
 
@@ -103,18 +103,18 @@ contract DEX is ReentrancyGuard {
 
         uint256 tokenReserve = token.balanceOf(address(this));
         uint256 ethReserve = address(this).balance;
-        
+
         // Prevent division by zero
         if (tokenReserve == 0 || ethReserve == 0) revert ZeroReserve();
-        
+
         ethOutput = price(tokenInput, tokenReserve, ethReserve);
-        
+
         // Slippage protection
         if (ethOutput < minEth) revert InsufficientOutputAmount();
 
         if (!token.transferFrom(msg.sender, address(this), tokenInput)) revert TokenTransferFailed();
 
-        (bool sent, ) = msg.sender.call{value: ethOutput}("");
+        (bool sent, ) = msg.sender.call{ value: ethOutput }("");
         if (!sent) revert EthTransferFailed(msg.sender, ethOutput);
 
         emit TokenToEthSwap(msg.sender, tokenInput, ethOutput);
@@ -129,15 +129,15 @@ contract DEX is ReentrancyGuard {
 
         uint256 ethReserve = address(this).balance - msg.value;
         uint256 tokenReserve = token.balanceOf(address(this));
-        
+
         // Prevent division by zero
         if (ethReserve == 0) revert ZeroReserve();
-        
+
         // Handle first deposit when tokenReserve is 0
         if (tokenReserve == 0) {
             tokensDeposited = msg.value;
         } else {
-            tokensDeposited = (msg.value * tokenReserve / ethReserve) + 1;
+            tokensDeposited = ((msg.value * tokenReserve) / ethReserve) + 1;
         }
 
         uint256 bal = token.balanceOf(msg.sender);
@@ -146,7 +146,7 @@ contract DEX is ReentrancyGuard {
         uint256 allow = token.allowance(msg.sender, address(this));
         if (allow < tokensDeposited) revert InsufficientTokenAllowance(allow, tokensDeposited);
 
-        uint256 liquidityMinted = msg.value * totalLiquidity / ethReserve;
+        uint256 liquidityMinted = (msg.value * totalLiquidity) / ethReserve;
         liquidity[msg.sender] += liquidityMinted;
         totalLiquidity += liquidityMinted;
 
@@ -166,13 +166,13 @@ contract DEX is ReentrancyGuard {
         uint256 ethReserve = address(this).balance;
         uint256 tokenReserve = token.balanceOf(address(this));
 
-        ethAmount = amount * ethReserve / totalLiquidity;
-        tokenAmount = amount * tokenReserve / totalLiquidity;
+        ethAmount = (amount * ethReserve) / totalLiquidity;
+        tokenAmount = (amount * tokenReserve) / totalLiquidity;
 
         liquidity[msg.sender] -= amount;
         totalLiquidity -= amount;
 
-        (bool sent, ) = payable(msg.sender).call{value: ethAmount}("");
+        (bool sent, ) = payable(msg.sender).call{ value: ethAmount }("");
         if (!sent) revert EthTransferFailed(msg.sender, ethAmount);
 
         if (!token.transfer(msg.sender, tokenAmount)) revert TokenTransferFailed();
