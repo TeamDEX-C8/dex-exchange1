@@ -1,7 +1,16 @@
 "use client";
 
 import type { NextPage } from "next";
-import { RocketLaunchIcon, ChartBarIcon, UsersIcon, CurrencyDollarIcon, ArrowTrendingUpIcon, CheckCircleIcon, ClockIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowTrendingUpIcon,
+  ChartBarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CurrencyDollarIcon,
+  RocketLaunchIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+} from "@heroicons/react/24/outline";
 
 // Mock data for Upcoming IDOs
 const upcomingIDOs = [
@@ -153,8 +162,8 @@ const Launchpad: NextPage = () => {
                 Web3 Launchpad
               </h1>
               <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-6">
-                Discover and invest in the next generation of decentralized projects.
-                Secure, transparent, and community-driven IDO platform.
+                Discover and invest in the next generation of decentralized projects. Secure, transparent, and
+                community-driven IDO platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -166,9 +175,7 @@ const Launchpad: NextPage = () => {
                 >
                   <span className="text-gray-900">Explore IDOs</span>
                 </button>
-                <button
-                  className="px-8 py-3 rounded-lg font-semibold border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 transition-all duration-300"
-                >
+                <button className="px-8 py-3 rounded-lg font-semibold border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 transition-all duration-300">
                   Launch Project
                 </button>
               </div>
@@ -205,7 +212,7 @@ const Launchpad: NextPage = () => {
             </button>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingIDOs.map((ido) => {
+            {upcomingIDOs.map(ido => {
               const progressPercent = (ido.raised / ido.target) * 100;
               return (
                 <div
@@ -294,7 +301,7 @@ const Launchpad: NextPage = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {completedProjects.map((project) => (
+            {completedProjects.map(project => (
               <div
                 key={project.id}
                 className="rounded-xl p-4 md:p-6 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300 hover:bg-white/5"
@@ -310,9 +317,7 @@ const Launchpad: NextPage = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-semibold text-white">{project.name}</h3>
-                      <span className="px-2 py-0.5 rounded text-xs bg-gray-700/50 text-gray-300">
-                        {project.symbol}
-                      </span>
+                      <span className="px-2 py-0.5 rounded text-xs bg-gray-700/50 text-gray-300">{project.symbol}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-sm text-gray-400">{project.chain}</span>
@@ -327,9 +332,7 @@ const Launchpad: NextPage = () => {
                   </div>
                   <div
                     className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      project.change.startsWith("+")
-                        ? "bg-green-500/20 text-green-400"
-                        : "bg-red-500/20 text-red-400"
+                      project.change.startsWith("+") ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
                     }`}
                   >
                     {project.change}

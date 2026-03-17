@@ -1,15 +1,15 @@
 import { useMemo } from "react";
+import { Address } from "viem";
 import { useBalance, useReadContract } from "wagmi";
 import { DEX } from "~~/contracts/deployedContracts";
-import { Address } from "viem";
 
 const DEX_ABI = DEX.abi;
 
 /**
  * Calculates price impact for swapping ETH to Tokens
- * 
+ *
  * Price Impact = ((Spot Price - Execution Price) / Spot Price) * 100
- * 
+ *
  * - Spot Price: The current market price before the trade
  * - Execution Price: The actual price including slippage/fee impact
  */
@@ -17,7 +17,7 @@ export function usePriceImpact(
   dexAddress: Address,
   tokenAddress: Address,
   inputAmount: bigint | undefined,
-  isEnabled: boolean = true
+  isEnabled: boolean = true,
 ) {
   // Get ETH reserve (contract's ETH balance)
   const { data: ethBalance } = useBalance({
@@ -89,12 +89,10 @@ export function usePriceImpact(
     // EXECUTION PRICE: Price after trade (includes 0.3% fee)
     // Formula: output = (input * 997 * tokenReserve) / (ethReserve * 1000 + input * 997)
     const inputWithFee = (inputAmount * 997n) / 1000n;
-    
+
     let executionOutput: bigint = 0n;
     if (inputWithFee > 0n) {
-      executionOutput =
-        (tokenRes * inputWithFee) /
-        (ethReserve * 1000n + inputAmount * 997n);
+      executionOutput = (tokenRes * inputWithFee) / (ethReserve * 1000n + inputAmount * 997n);
     }
 
     // Avoid division by zero
@@ -115,7 +113,7 @@ export function usePriceImpact(
     // ((Spot - Execution) / Spot) * 100
     // Using bigint for precision, then converting to number for display
     let priceImpactRaw = spotPrice - executionPrice;
-    
+
     // Handle negative price impact (rare but possible with large trades)
     if (priceImpactRaw < 0n) {
       priceImpactRaw = 0n;
@@ -144,7 +142,7 @@ export function usePriceImpactTokenToEth(
   dexAddress: Address,
   tokenAddress: Address,
   inputAmount: bigint | undefined,
-  isEnabled: boolean = true
+  isEnabled: boolean = true,
 ) {
   const { data: ethBalance } = useBalance({
     address: dexAddress,
@@ -210,12 +208,10 @@ export function usePriceImpactTokenToEth(
 
     // EXECUTION PRICE with 0.3% fee
     const inputWithFee = (inputAmount * 997n) / 1000n;
-    
+
     let executionOutput: bigint = 0n;
     if (inputWithFee > 0n) {
-      executionOutput =
-        (ethReserve * inputWithFee) /
-        (tokenRes * 1000n + inputAmount * 997n);
+      executionOutput = (ethReserve * inputWithFee) / (tokenRes * 1000n + inputAmount * 997n);
     }
 
     if (executionOutput === 0n) {
