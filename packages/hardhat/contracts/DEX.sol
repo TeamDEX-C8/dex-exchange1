@@ -4,6 +4,11 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+/**
+ * @title DEX - Decentralized Exchange
+ * @notice A constant-product AMM (Automated Market Maker) like Uniswap V2
+ * @dev Implements x * y = k formula with 0.3% trading fee
+ */
 contract DEX is ReentrancyGuard {
     IERC20 public immutable token;
 
@@ -19,6 +24,8 @@ contract DEX is ReentrancyGuard {
     error InsufficientTokenAllowance(uint256 available, uint256 required);
     error EthTransferFailed(address to, uint256 amount);
     error InsufficientLiquidity(uint256 available, uint256 required);
+    error InsufficientOutputAmount();
+    error ZeroReserve();
 
     // Events
     event EthToTokenSwap(address swapper, uint256 tokenOutput, uint256 ethInput);
@@ -57,14 +64,22 @@ contract DEX is ReentrancyGuard {
     }
 
     /**
-     * @notice Swap ETH for tokens.
+     * @notice Swap ETH for tokens with minimum output protection
+     * @param minTokens Minimum tokens to receive (slippage protection)
      */
-    function ethToToken() public payable nonReentrant returns (uint256 tokenOutput) {
+    function ethToToken(uint256 minTokens) public payable nonReentrant returns (uint256 tokenOutput) {
         if (msg.value == 0) revert InvalidEthAmount();
 
         uint256 ethReserve = address(this).balance - msg.value;
         uint256 tokenReserve = token.balanceOf(address(this));
+        
+        // Prevent division by zero
+        if (ethReserve == 0 || tokenReserve == 0) revert ZeroReserve();
+        
         tokenOutput = price(msg.value, ethReserve, tokenReserve);
+        
+        // Slippage protection
+        if (tokenOutput < minTokens) revert InsufficientOutputAmount();
 
         if (!token.transfer(msg.sender, tokenOutput)) revert TokenTransferFailed();
 
@@ -73,9 +88,11 @@ contract DEX is ReentrancyGuard {
     }
 
     /**
-     * @notice Swap tokens for ETH.
+     * @notice Swap tokens for ETH with minimum output protection
+     * @param tokenInput Amount of tokens to swap
+     * @param minEth Minimum ETH to receive (slippage protection)
      */
-    function tokenToEth(uint256 tokenInput) public nonReentrant returns (uint256 ethOutput) {
+    function tokenToEth(uint256 tokenInput, uint256 minEth) public nonReentrant returns (uint256 ethOutput) {
         if (tokenInput == 0) revert InvalidTokenAmount();
 
         uint256 bal = token.balanceOf(msg.sender);
@@ -85,7 +102,15 @@ contract DEX is ReentrancyGuard {
         if (allow < tokenInput) revert InsufficientTokenAllowance(allow, tokenInput);
 
         uint256 tokenReserve = token.balanceOf(address(this));
-        ethOutput = price(tokenInput, tokenReserve, address(this).balance);
+        uint256 ethReserve = address(this).balance;
+        
+        // Prevent division by zero
+        if (tokenReserve == 0 || ethReserve == 0) revert ZeroReserve();
+        
+        ethOutput = price(tokenInput, tokenReserve, ethReserve);
+        
+        // Slippage protection
+        if (ethOutput < minEth) revert InsufficientOutputAmount();
 
         if (!token.transferFrom(msg.sender, address(this), tokenInput)) revert TokenTransferFailed();
 
@@ -104,8 +129,16 @@ contract DEX is ReentrancyGuard {
 
         uint256 ethReserve = address(this).balance - msg.value;
         uint256 tokenReserve = token.balanceOf(address(this));
-
-        tokensDeposited = (msg.value * tokenReserve / ethReserve) + 1;
+        
+        // Prevent division by zero
+        if (ethReserve == 0) revert ZeroReserve();
+        
+        // Handle first deposit when tokenReserve is 0
+        if (tokenReserve == 0) {
+            tokensDeposited = msg.value;
+        } else {
+            tokensDeposited = (msg.value * tokenReserve / ethReserve) + 1;
+        }
 
         uint256 bal = token.balanceOf(msg.sender);
         if (bal < tokensDeposited) revert InsufficientTokenBalance(bal, tokensDeposited);

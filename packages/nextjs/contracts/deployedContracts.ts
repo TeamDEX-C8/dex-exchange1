@@ -739,7 +739,7 @@ const deployedContracts = {
   },
   11155111: {
     Balloons: {
-      address: "0x563aF65434934b59892e21EBF93Ce2FCbA512Feb",
+      address: "0x0954F36cfa16564C0b35c24286447168a8BE89aA",
       abi: [
         {
           inputs: [],
@@ -1069,7 +1069,7 @@ const deployedContracts = {
       deployedOnBlock: 10458956,
     },
     DEX: {
-      address: "0x90c53C6e916147bBa053729AC9a0CCBE01670E98",
+      address: "0x0B3fBcF7363b4e9f2A66949E67AEbb9706E66f02",
       abi: [
         {
           inputs: [
