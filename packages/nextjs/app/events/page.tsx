@@ -1,12 +1,43 @@
 "use client";
 
-import { Address } from "@scaffold-ui/components";
+import { useMemo } from "react";
 import type { NextPage } from "next";
 import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
+const shortAddress = (address?: string) => {
+  if (!address) return "-";
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+const toAmount = (value?: bigint) => Number.parseFloat(formatEther(value ?? 0n)).toFixed(4);
+
+type Particle = {
+  id: number;
+  left: number;
+  top: number;
+  size: number;
+  delay: number;
+  duration: number;
+  opacity: number;
+};
+
 const Events: NextPage = () => {
-  const { data: EthToTokenEvents, isLoading: isEthToTokenEventsLoading } = useScaffoldEventHistory({
+  const particles = useMemo<Particle[]>(
+    () =>
+      Array.from({ length: 18 }, (_, i) => ({
+        id: i,
+        left: (i * 17 + 13) % 100,
+        top: (i * 11 + 19) % 100,
+        size: 2 + (i % 4),
+        delay: (i % 7) * 0.7,
+        duration: 7 + (i % 6) * 1.5,
+        opacity: 0.1 + (i % 5) * 0.08,
+      })),
+    [],
+  );
+
+  const { data: ethToTokenEvents, isLoading: isEthToTokenEventsLoading } = useScaffoldEventHistory({
     contractName: "DEX",
     eventName: "EthToTokenSwap",
   });
@@ -27,189 +58,205 @@ const Events: NextPage = () => {
   });
 
   return (
-    <>
-      <div className="flex items-center flex-col flex-grow pt-10">
-        {isEthToTokenEventsLoading ? (
-          <div className="flex justify-center items-center mt-10">
-            <span className="loading loading-spinner loading-lg"></span>
-          </div>
-        ) : (
-          <div>
-            <div className="text-center mb-4">
-              <span className="block text-2xl font-bold">ETH To Balloons Events</span>
-            </div>
-            <div className="overflow-x-auto shadow-lg">
-              <table className="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th className="bg-primary">Address</th>
-                    <th className="bg-primary">Amount of ETH in</th>
-                    <th className="bg-primary">Amount of Balloons out</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!EthToTokenEvents || EthToTokenEvents.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="text-center">
-                        No events found
-                      </td>
-                    </tr>
-                  ) : (
-                    EthToTokenEvents?.map((event, index) => {
-                      return (
-                        <tr key={index}>
-                          <td className="text-center">
-                            <Address address={event.args?.swapper} />
-                          </td>
-                          <td>{parseFloat(formatEther(event.args?.ethInput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.tokenOutput || 0n)).toFixed(4)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+    <div className="relative min-h-screen overflow-hidden">
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(1100px 580px at 16% -10%, rgba(76,129,255,0.24), transparent 55%), radial-gradient(920px 520px at 90% 0%, rgba(28,212,199,0.2), transparent 58%), #070b14",
+        }}
+      />
 
-        {isTokenToEthEventsLoading ? (
-          <div className="flex justify-center items-center mt-10">
-            <span className="loading loading-spinner loading-lg"></span>
-          </div>
-        ) : (
-          <div className="mt-8">
-            <div className="text-center mb-4">
-              <span className="block text-2xl font-bold">Balloons To ETH Events</span>
-            </div>
-            <div className="overflow-x-auto shadow-lg">
-              <table className="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th className="bg-primary">Address</th>
-                    <th className="bg-primary">Amount of Balloons In</th>
-                    <th className="bg-primary">Amount of ETH Out</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!tokenToEthEvents || tokenToEthEvents.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="text-center">
-                        No events found
-                      </td>
-                    </tr>
-                  ) : (
-                    tokenToEthEvents?.map((event, index) => {
-                      return (
-                        <tr key={index}>
-                          <td className="text-center">
-                            <Address address={event.args?.swapper} />
-                          </td>
-                          <td>{parseFloat(formatEther(event.args?.tokensInput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.ethOutput || 0n)).toFixed(4)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {isLiquidityProvidedEventsLoading ? (
-          <div className="flex justify-center items-center mt-10">
-            <span className="loading loading-spinner loading-lg"></span>
-          </div>
-        ) : (
-          <div className="mt-8">
-            <div className="text-center mb-4">
-              <span className="block text-2xl font-bold">Liquidity Provided Events</span>
-            </div>
-            <div className="overflow-x-auto shadow-lg">
-              <table className="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th className="bg-primary">Address</th>
-                    <th className="bg-primary">Amount of ETH In</th>
-                    <th className="bg-primary">Amount of Balloons In</th>
-                    <th className="bg-primary">Lİquidity Minted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!liquidityProvidedEvents || liquidityProvidedEvents.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center">
-                        No events found
-                      </td>
-                    </tr>
-                  ) : (
-                    liquidityProvidedEvents?.map((event, index) => {
-                      return (
-                        <tr key={index}>
-                          <td className="text-center">
-                            <Address address={event.args?.liquidityProvider} />
-                          </td>
-                          <td>{parseFloat(formatEther(event.args?.ethInput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.tokensInput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.liquidityMinted || 0n)).toFixed(4)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {isLiquidityRemovedEventsLoading ? (
-          <div className="flex justify-center items-center mt-10">
-            <span className="loading loading-spinner loading-lg"></span>
-          </div>
-        ) : (
-          <div className="mt-8 mb-8">
-            <div className="text-center mb-4">
-              <span className="block text-2xl font-bold">Liquidity Removed Events</span>
-            </div>
-            <div className="overflow-x-auto shadow-lg mb-5">
-              <table className="table table-zebra w-full">
-                <thead>
-                  <tr>
-                    <th className="bg-primary">Address</th>
-                    <th className="bg-primary">Amount of ETH Out</th>
-                    <th className="bg-primary">Amount of Balloons Out</th>
-                    <th className="bg-primary">Liquidity Withdrawn</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!liquidityRemovedEvents || liquidityRemovedEvents.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center">
-                        No events found
-                      </td>
-                    </tr>
-                  ) : (
-                    liquidityRemovedEvents?.map((event, index) => {
-                      return (
-                        <tr key={index}>
-                          <td className="text-center">
-                            <Address address={event.args?.liquidityRemover} />
-                          </td>
-                          <td>{parseFloat(formatEther(event.args?.ethOutput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.tokenOutput || 0n)).toFixed(4)}</td>
-                          <td>{parseFloat(formatEther(event.args?.liquidityAmount || 0n)).toFixed(4)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+      <div className="absolute inset-0 pointer-events-none">
+        {particles.map(particle => (
+          <span
+            key={particle.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              background: "rgba(132, 191, 255, 0.95)",
+              opacity: particle.opacity,
+              boxShadow: "0 0 14px rgba(132,191,255,0.55)",
+              animation: `floatParticle ${particle.duration}s ease-in-out ${particle.delay}s infinite`,
+            }}
+          />
+        ))}
       </div>
-    </>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 pt-10 pb-12">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-semibold text-[#f7fbff]">DEX Events</h1>
+          <p className="text-[#c5d7f4] mt-2">Live activity feed for swaps and liquidity actions.</p>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <section className="rounded-3xl border border-white/15 bg-[#0f1726]/95 p-5">
+            <h2 className="text-[#f7fbff] text-lg font-semibold mb-3">ETH to BAL Swaps</h2>
+            {isEthToTokenEventsLoading ? (
+              <div className="py-6 text-[#9cb2d2]">Loading events...</div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-white/15">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#162238] text-[#9fc3f5]">
+                    <tr>
+                      <th className="text-left p-3">Swapper</th>
+                      <th className="text-right p-3">ETH In</th>
+                      <th className="text-right p-3">BAL Out</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!ethToTokenEvents || ethToTokenEvents.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="p-3 text-[#9cb2d2]">
+                          No events found
+                        </td>
+                      </tr>
+                    ) : (
+                      ethToTokenEvents.map((event, index) => (
+                        <tr key={index} className="border-t border-white/10 text-[#e6efff]">
+                          <td className="p-3 font-mono">{shortAddress(event.args?.swapper)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.ethInput)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.tokenOutput)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-white/15 bg-[#0f1726]/95 p-5">
+            <h2 className="text-[#f7fbff] text-lg font-semibold mb-3">BAL to ETH Swaps</h2>
+            {isTokenToEthEventsLoading ? (
+              <div className="py-6 text-[#9cb2d2]">Loading events...</div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-white/15">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#162238] text-[#9fc3f5]">
+                    <tr>
+                      <th className="text-left p-3">Swapper</th>
+                      <th className="text-right p-3">BAL In</th>
+                      <th className="text-right p-3">ETH Out</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!tokenToEthEvents || tokenToEthEvents.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="p-3 text-[#9cb2d2]">
+                          No events found
+                        </td>
+                      </tr>
+                    ) : (
+                      tokenToEthEvents.map((event, index) => (
+                        <tr key={index} className="border-t border-white/10 text-[#e6efff]">
+                          <td className="p-3 font-mono">{shortAddress(event.args?.swapper)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.tokensInput)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.ethOutput)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-white/15 bg-[#0f1726]/95 p-5">
+            <h2 className="text-[#f7fbff] text-lg font-semibold mb-3">Liquidity Provided</h2>
+            {isLiquidityProvidedEventsLoading ? (
+              <div className="py-6 text-[#9cb2d2]">Loading events...</div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-white/15">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#162238] text-[#9fc3f5]">
+                    <tr>
+                      <th className="text-left p-3">Provider</th>
+                      <th className="text-right p-3">ETH In</th>
+                      <th className="text-right p-3">BAL In</th>
+                      <th className="text-right p-3">LP Minted</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!liquidityProvidedEvents || liquidityProvidedEvents.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-3 text-[#9cb2d2]">
+                          No events found
+                        </td>
+                      </tr>
+                    ) : (
+                      liquidityProvidedEvents.map((event, index) => (
+                        <tr key={index} className="border-t border-white/10 text-[#e6efff]">
+                          <td className="p-3 font-mono">{shortAddress(event.args?.liquidityProvider)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.ethInput)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.tokensInput)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.liquidityMinted)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-white/15 bg-[#0f1726]/95 p-5">
+            <h2 className="text-[#f7fbff] text-lg font-semibold mb-3">Liquidity Removed</h2>
+            {isLiquidityRemovedEventsLoading ? (
+              <div className="py-6 text-[#9cb2d2]">Loading events...</div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-white/15">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#162238] text-[#9fc3f5]">
+                    <tr>
+                      <th className="text-left p-3">Remover</th>
+                      <th className="text-right p-3">ETH Out</th>
+                      <th className="text-right p-3">BAL Out</th>
+                      <th className="text-right p-3">LP Burned</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!liquidityRemovedEvents || liquidityRemovedEvents.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-3 text-[#9cb2d2]">
+                          No events found
+                        </td>
+                      </tr>
+                    ) : (
+                      liquidityRemovedEvents.map((event, index) => (
+                        <tr key={index} className="border-t border-white/10 text-[#e6efff]">
+                          <td className="p-3 font-mono">{shortAddress(event.args?.liquidityRemover)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.ethOutput)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.tokenOutput)}</td>
+                          <td className="p-3 text-right">{toAmount(event.args?.liquidityAmount)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes floatParticle {
+          0% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+          50% {
+            transform: translate3d(0, -14px, 0) scale(1.2);
+          }
+          100% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+        }
+      `}</style>
+    </div>
   );
 };
 
