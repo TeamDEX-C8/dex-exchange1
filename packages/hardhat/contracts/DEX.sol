@@ -64,10 +64,9 @@ contract DEX is ReentrancyGuard {
     }
 
     /**
-     * @notice Swap ETH for tokens with minimum output protection
-     * @param minTokens Minimum tokens to receive (slippage protection)
+     * @notice Swap ETH for tokens.
      */
-    function ethToToken(uint256 minTokens) public payable nonReentrant returns (uint256 tokenOutput) {
+    function ethToToken() public payable nonReentrant returns (uint256 tokenOutput) {
         if (msg.value == 0) revert InvalidEthAmount();
 
         uint256 ethReserve = address(this).balance - msg.value;
@@ -77,9 +76,6 @@ contract DEX is ReentrancyGuard {
         if (ethReserve == 0 || tokenReserve == 0) revert ZeroReserve();
         
         tokenOutput = price(msg.value, ethReserve, tokenReserve);
-        
-        // Slippage protection
-        if (tokenOutput < minTokens) revert InsufficientOutputAmount();
 
         if (!token.transfer(msg.sender, tokenOutput)) revert TokenTransferFailed();
 
@@ -88,11 +84,10 @@ contract DEX is ReentrancyGuard {
     }
 
     /**
-     * @notice Swap tokens for ETH with minimum output protection
+     * @notice Swap tokens for ETH.
      * @param tokenInput Amount of tokens to swap
-     * @param minEth Minimum ETH to receive (slippage protection)
      */
-    function tokenToEth(uint256 tokenInput, uint256 minEth) public nonReentrant returns (uint256 ethOutput) {
+    function tokenToEth(uint256 tokenInput) public nonReentrant returns (uint256 ethOutput) {
         if (tokenInput == 0) revert InvalidTokenAmount();
 
         uint256 bal = token.balanceOf(msg.sender);
@@ -108,9 +103,6 @@ contract DEX is ReentrancyGuard {
         if (tokenReserve == 0 || ethReserve == 0) revert ZeroReserve();
         
         ethOutput = price(tokenInput, tokenReserve, ethReserve);
-        
-        // Slippage protection
-        if (ethOutput < minEth) revert InsufficientOutputAmount();
 
         if (!token.transferFrom(msg.sender, address(this), tokenInput)) revert TokenTransferFailed();
 

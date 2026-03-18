@@ -388,6 +388,11 @@ const deployedContracts = {
           type: "error",
         },
         {
+          inputs: [],
+          name: "InsufficientOutputAmount",
+          type: "error",
+        },
+        {
           inputs: [
             {
               internalType: "uint256",
@@ -437,6 +442,11 @@ const deployedContracts = {
         {
           inputs: [],
           name: "TokenTransferFailed",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ZeroReserve",
           type: "error",
         },
         {
@@ -1066,7 +1076,7 @@ const deployedContracts = {
         transfer: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
         transferFrom: "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       },
-      deployedOnBlock: 10458956,
+      deployedOnBlock: 10463015,
     },
     DEX: {
       address: "0x0B3fBcF7363b4e9f2A66949E67AEbb9706E66f02",
@@ -1466,7 +1476,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 10458958,
+      deployedOnBlock: 10463016,
     },
   },
 } as const;
