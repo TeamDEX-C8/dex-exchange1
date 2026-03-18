@@ -32,7 +32,7 @@ const Debug: NextPage = () => {
         {particles.map(particle => (
           <span
             key={particle.id}
-            className="absolute rounded-full"
+            className="absolute rounded-full motion-safe:animate-bounce"
             style={{
               left: `${particle.left}%`,
               top: `${particle.top}%`,
@@ -41,7 +41,8 @@ const Debug: NextPage = () => {
               background: "rgba(132, 191, 255, 0.95)",
               opacity: particle.opacity,
               boxShadow: "0 0 14px rgba(132,191,255,0.55)",
-              animation: `floatParticle ${particle.duration}s ease-in-out ${particle.delay}s infinite`,
+              animationDuration: `${particle.duration}s`,
+              animationDelay: `${particle.delay}s`,
             }}
           />
         ))}
@@ -55,20 +56,6 @@ const Debug: NextPage = () => {
 
         <DebugContracts />
       </div>
-
-      <style jsx>{`
-        @keyframes floatParticle {
-          0% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
-          50% {
-            transform: translate3d(0, -14px, 0) scale(1.2);
-          }
-          100% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
-        }
-      `}</style>
     </div>
   );
 };
