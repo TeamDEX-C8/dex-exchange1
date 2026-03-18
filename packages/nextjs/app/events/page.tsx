@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NextPage } from "next";
 import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+import Boom from "react-confetti-boom";
 
 const shortAddress = (address?: string) => {
   if (!address) return "-";
@@ -37,6 +38,9 @@ const Events: NextPage = () => {
     [],
   );
 
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [prevEventCount, setPrevEventCount] = useState(0);
+
   const { data: ethToTokenEvents, isLoading: isEthToTokenEventsLoading } = useScaffoldEventHistory({
     contractName: "DEX",
     eventName: "EthToTokenSwap",
@@ -57,8 +61,35 @@ const Events: NextPage = () => {
     eventName: "LiquidityRemoved",
   });
 
+  // Calculate total events and trigger confetti when new events arrive
+  const totalEvents = useMemo(() => {
+    return (
+      (ethToTokenEvents?.length || 0) +
+      (tokenToEthEvents?.length || 0) +
+      (liquidityProvidedEvents?.length || 0) +
+      (liquidityRemovedEvents?.length || 0)
+    );
+  }, [ethToTokenEvents, tokenToEthEvents, liquidityProvidedEvents, liquidityRemovedEvents]);
+
+  useEffect(() => {
+    if (totalEvents > prevEventCount && prevEventCount > 0) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+    }
+    setPrevEventCount(totalEvents);
+  }, [totalEvents, prevEventCount]);
+
   return (
     <div className="relative min-h-screen overflow-hidden">
+      {showConfetti && (
+        <Boom
+          height={300}
+          angle={130}
+          spread={360}
+          particleCount={100}
+          colors={["#49a3ff", "#1dd3c7", "#ff9f6e", "#ff6aa0", "#8f9bff"]}
+        />
+      )}
       <div
         className="absolute inset-0"
         style={{

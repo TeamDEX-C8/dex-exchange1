@@ -137,6 +137,35 @@ const DexPage: NextPage = () => {
     return (eth / bal).toFixed(6);
   }, [ethReserve, tokenReserve]);
 
+  const balPerEth = useMemo(() => {
+    if (ethReserve === 0n) return "0.000000";
+    const eth = Number.parseFloat(formatEther(ethReserve));
+    const bal = Number.parseFloat(formatEther(tokenReserve));
+    if (!Number.isFinite(eth) || !Number.isFinite(bal) || eth === 0) return "0.000000";
+    return (bal / eth).toFixed(6);
+  }, [ethReserve, tokenReserve]);
+
+  // Calculate expected output for swap
+  const expectedOutput = useMemo(() => {
+    if (swapAmountWei === 0n || ethReserve === 0n || tokenReserve === 0n) return null;
+    try {
+      if (swapDirection === "ethToToken") {
+        // yOutput = (yReserves * xInput * 997) / (xReserves * 1000 + xInput * 997)
+        const xInputWithFee = swapAmountWei * 997n;
+        const numerator = tokenReserve * xInputWithFee;
+        const denominator = ethReserve * 1000n + xInputWithFee;
+        return numerator / denominator;
+      } else {
+        const xInputWithFee = swapAmountWei * 997n;
+        const numerator = ethReserve * xInputWithFee;
+        const denominator = tokenReserve * 1000n + xInputWithFee;
+        return numerator / denominator;
+      }
+    } catch {
+      return null;
+    }
+  }, [swapAmountWei, swapDirection, ethReserve, tokenReserve]);
+
   const kApprox = useMemo(() => {
     const eth = Number.parseFloat(formatEther(ethReserve));
     const bal = Number.parseFloat(formatEther(tokenReserve));
@@ -338,6 +367,15 @@ const DexPage: NextPage = () => {
                     className="mt-2 w-full bg-transparent text-3xl font-semibold text-[#f4f8ff] outline-none placeholder:text-[#617da4]"
                   />
                   <p className="mt-2 text-sm text-[#9cb2d2]">{swapHint}</p>
+                  {expectedOutput && swapAmountWei > 0n && (
+                    <div className="mt-3 pt-3 border-t border-white/10">
+                      <p className="text-xs text-[#8aa2c4] uppercase tracking-wide">Expected Output</p>
+                      <p className="text-lg font-semibold text-[#7df7dc]">
+                        {toFixedEth(expectedOutput)} {swapDirection === "ethToToken" ? "BAL" : "ETH"}
+                      </p>
+                      <p className="text-xs text-[#9cb2d2] mt-1">Includes 0.3% fee</p>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -464,8 +502,8 @@ const DexPage: NextPage = () => {
                   <p className="text-[#f4f8ff] text-lg font-semibold mt-1">{ethPerBal}</p>
                 </div>
                 <div className="rounded-xl bg-[#0b1220] border border-white/15 p-3">
-                  <p className="text-xs text-[#8aa2c4] uppercase tracking-wide">k (approx)</p>
-                  <p className="text-[#f4f8ff] text-lg font-semibold mt-1">{kApprox}</p>
+                  <p className="text-xs text-[#8aa2c4] uppercase tracking-wide">BAL per ETH</p>
+                  <p className="text-[#f4f8ff] text-lg font-semibold mt-1">{balPerEth}</p>
                 </div>
               </div>
 
