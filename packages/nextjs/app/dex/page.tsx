@@ -50,6 +50,11 @@ const DexPage: NextPage = () => {
   const [approveSpender, setApproveSpender] = useState("");
   const [approveAmount, setApproveAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState<"swap" | "pool" | "approve" | null>(null);
+  
+  // Transaction settings
+  const [showSettings, setShowSettings] = useState(false);
+  const [slippageTolerance, setSlippageTolerance] = useState("0.5"); // 0.5% default
+  const [deadlineMinutes, setDeadlineMinutes] = useState("20"); // 20 minutes default
 
   const particles = useMemo<Particle[]>(
     () =>
@@ -124,6 +129,10 @@ const DexPage: NextPage = () => {
   const swapAmountWei = useMemo(() => toWei(swapAmount), [swapAmount]);
   const poolAmountWei = useMemo(() => toWei(poolAmount), [poolAmount]);
   const approveAmountWei = useMemo(() => toWei(approveAmount), [approveAmount]);
+  
+  // Calculate slippage and deadline
+  const slippageBps = useMemo(() => Math.floor(parseFloat(slippageTolerance || "0.5") * 100), [slippageTolerance]);
+  const deadlineTimestamp = useMemo(() => Math.floor(Date.now() / 1000) + (parseInt(deadlineMinutes || "20") * 60), [deadlineMinutes]);
 
   const ethReserve = dexEthBalance?.value ?? 0n;
   const tokenReserve = dexTokenReserve ?? 0n;
@@ -145,26 +154,32 @@ const DexPage: NextPage = () => {
     return (bal / eth).toFixed(6);
   }, [ethReserve, tokenReserve]);
 
-  // Calculate expected output for swap
-  const expectedOutput = useMemo(() => {
-    if (swapAmountWei === 0n || ethReserve === 0n || tokenReserve === 0n) return null;
+  // Calculate expected output for swap with slippage
+  const { expectedOutput, minOutput } = useMemo(() => {
+    if (swapAmountWei === 0n || ethReserve === 0n || tokenReserve === 0n) return { expectedOutput: null, minOutput: null };
     try {
+      let output: bigint;
       if (swapDirection === "ethToToken") {
-        // yOutput = (yReserves * xInput * 997) / (xReserves * 1000 + xInput * 997)
         const xInputWithFee = swapAmountWei * 997n;
         const numerator = tokenReserve * xInputWithFee;
         const denominator = ethReserve * 1000n + xInputWithFee;
-        return numerator / denominator;
+        output = numerator / denominator;
       } else {
         const xInputWithFee = swapAmountWei * 997n;
         const numerator = ethReserve * xInputWithFee;
         const denominator = tokenReserve * 1000n + xInputWithFee;
-        return numerator / denominator;
+        output = numerator / denominator;
       }
+      
+      // Apply slippage tolerance
+      const slippageMultiplier = BigInt(10000 - slippageBps);
+      const minOut = (output * slippageMultiplier) / 10000n;
+      
+      return { expectedOutput: output, minOutput: minOut };
     } catch {
-      return null;
+      return { expectedOutput: null, minOutput: null };
     }
-  }, [swapAmountWei, swapDirection, ethReserve, tokenReserve]);
+  }, [swapAmountWei, swapDirection, ethReserve, tokenReserve, slippageBps]);
 
   const kApprox = useMemo(() => {
     const eth = Number.parseFloat(formatEther(ethReserve));
@@ -174,18 +189,19 @@ const DexPage: NextPage = () => {
   }, [ethReserve, tokenReserve]);
 
   const handleSwap = async () => {
-    if (swapAmountWei <= 0n) return;
+    if (swapAmountWei <= 0n || !minOutput) return;
     setIsSubmitting("swap");
     try {
       if (swapDirection === "ethToToken") {
         await writeDexContractAsync({
           functionName: "ethToToken",
+          args: [minOutput, BigInt(deadlineTimestamp)],
           value: swapAmountWei,
         });
       } else {
         await writeDexContractAsync({
           functionName: "tokenToEth",
-          args: [swapAmountWei],
+          args: [swapAmountWei, minOutput, BigInt(deadlineTimestamp)],
         });
       }
       setSwapAmount("");
@@ -201,14 +217,27 @@ const DexPage: NextPage = () => {
     setIsSubmitting("pool");
     try {
       if (poolMode === "deposit") {
+        // Calculate minimum tokens expected
+        const ethReserve = dexEthBalance?.value ?? 0n;
+        const tokenReserve = dexTokenReserve ?? 0n;
+        let minTokens: bigint;
+        
+        if (tokenReserve === 0n) {
+          minTokens = poolAmountWei;
+        } else {
+          minTokens = ((poolAmountWei * tokenReserve) / ethReserve) - 1n; // Allow 1 wei slippage
+        }
+        
         await writeDexContractAsync({
           functionName: "deposit",
+          args: [minTokens, BigInt(deadlineTimestamp)],
           value: poolAmountWei,
         });
       } else {
+        // For withdrawal, set minimum amounts to 0 (user gets whatever is proportional)
         await writeDexContractAsync({
           functionName: "withdraw",
-          args: [poolAmountWei],
+          args: [poolAmountWei, 0n, 0n],
         });
       }
       setPoolAmount("");
@@ -373,14 +402,16 @@ const DexPage: NextPage = () => {
                       <p className="text-lg font-semibold text-[#7df7dc]">
                         {toFixedEth(expectedOutput)} {swapDirection === "ethToToken" ? "BAL" : "ETH"}
                       </p>
-                      <p className="text-xs text-[#9cb2d2] mt-1">Includes 0.3% fee</p>
+                      <p className="text-xs text-[#9cb2d2] mt-1">
+                        Minimum: {toFixedEth(minOutput)} ({slippageTolerance}% slippage)
+                      </p>
                     </div>
                   )}
                 </div>
 
                 <button
                   onClick={handleSwap}
-                  disabled={swapAmountWei <= 0n || isSubmitting !== null || !isPoolInitialized}
+                  disabled={swapAmountWei <= 0n || isSubmitting !== null || !isPoolInitialized || !minOutput}
                   className="mt-4 w-full rounded-2xl py-3.5 font-semibold text-[#f7fbff] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ background: "linear-gradient(95deg, #3f8bff 0%, #1dcac1 100%)" }}
                 >
@@ -469,6 +500,125 @@ const DexPage: NextPage = () => {
               >
                 {isSubmitting === "approve" ? "Approving..." : "Approve"}
               </button>
+            </div>
+
+            {/* Transaction Settings Panel */}
+            <div className="rounded-2xl border border-white/15 bg-[#0b1220] p-4">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="w-full flex items-center justify-between text-xs uppercase tracking-[0.2em] text-[#8aa2c4] hover:text-[#f4f8ff] transition"
+              >
+                <span>Transaction Settings</span>
+                <svg 
+                  className={`w-4 h-4 transition-transform ${showSettings ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showSettings && (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="text-xs text-[#8aa2c4] uppercase tracking-wide">Slippage Tolerance</label>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => setSlippageTolerance("0.1")}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                          slippageTolerance === "0.1" 
+                            ? "bg-[#4ca6ff] text-[#f3f9ff]" 
+                            : "bg-[#111b2d] text-[#aec1de] hover:text-[#f4f8ff]"
+                        }`}
+                      >
+                        0.1%
+                      </button>
+                      <button
+                        onClick={() => setSlippageTolerance("0.5")}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                          slippageTolerance === "0.5" 
+                            ? "bg-[#4ca6ff] text-[#f3f9ff]" 
+                            : "bg-[#111b2d] text-[#aec1de] hover:text-[#f4f8ff]"
+                        }`}
+                      >
+                        0.5%
+                      </button>
+                      <button
+                        onClick={() => setSlippageTolerance("1.0")}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                          slippageTolerance === "1.0" 
+                            ? "bg-[#4ca6ff] text-[#f3f9ff]" 
+                            : "bg-[#111b2d] text-[#aec1de] hover:text-[#f4f8ff]"
+                        }`}
+                      >
+                        1.0%
+                      </button>
+                      <input
+                        type="number"
+                        value={slippageTolerance}
+                        onChange={(e) => setSlippageTolerance(e.target.value)}
+                        step="0.1"
+                        min="0.1"
+                        max="50"
+                        className="flex-1 rounded-lg bg-[#111b2d] border border-white/15 px-3 py-1 text-xs text-[#f4f8ff] outline-none placeholder:text-[#617da4]"
+                        placeholder="Custom"
+                      />
+                    </div>
+                    {parseFloat(slippageTolerance) > 5 && (
+                      <p className="mt-1 text-xs text-[#ff9f6e]">
+                        ⚠️ High slippage tolerance may result in unfavorable trades
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-[#8aa2c4] uppercase tracking-wide">Transaction Deadline</label>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => setDeadlineMinutes("10")}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                          deadlineMinutes === "10" 
+                            ? "bg-[#4ca6ff] text-[#f3f9ff]" 
+                            : "bg-[#111b2d] text-[#aec1de] hover:text-[#f4f8ff]"
+                        }`}
+                      >
+                        10m
+                      </button>
+                      <button
+                        onClick={() => setDeadlineMinutes("20")}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                          deadlineMinutes === "20" 
+                            ? "bg-[#4ca6ff] text-[#f3f9ff]" 
+                            : "bg-[#111b2d] text-[#aec1de] hover:text-[#f4f8ff]"
+                        }`}
+                      >
+                        20m
+                      </button>
+                      <button
+                        onClick={() => setDeadlineMinutes("30")}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                          deadlineMinutes === "30" 
+                            ? "bg-[#4ca6ff] text-[#f3f9ff]" 
+                            : "bg-[#111b2d] text-[#aec1de] hover:text-[#f4f8ff]"
+                        }`}
+                      >
+                        30m
+                      </button>
+                      <input
+                        type="number"
+                        value={deadlineMinutes}
+                        onChange={(e) => setDeadlineMinutes(e.target.value)}
+                        step="5"
+                        min="1"
+                        max="1440"
+                        className="flex-1 rounded-lg bg-[#111b2d] border border-white/15 px-3 py-1 text-xs text-[#f4f8ff] outline-none placeholder:text-[#617da4]"
+                        placeholder="Minutes"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
